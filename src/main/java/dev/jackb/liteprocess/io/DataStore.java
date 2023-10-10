@@ -22,7 +22,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import dev.jackb.liteprocess.LiteProcess;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -32,12 +31,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Supplier;
 
 public class DataStore {
 
-	private final LiteProcess process;
 	private final File file;
 	private final boolean autoSave;
 	private final HashMap<String, Object> data;
@@ -45,8 +42,7 @@ public class DataStore {
 	private final HashMap<String, Supplier<?>> defaultData;
 	private boolean usable;
 
-	public DataStore(LiteProcess process, String jsonName, boolean autoSave) {
-		this.process = Objects.requireNonNull(process);
+	public DataStore(String jsonName, boolean autoSave) {
 		this.file = new File(jsonName + ".json");
 		this.autoSave = autoSave;
 		this.data = new HashMap<>();
@@ -95,7 +91,6 @@ public class DataStore {
 			}
 
 			save();
-			this.process.addProcessEndListener(this::save);
 			this.usable = true;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -127,22 +122,20 @@ public class DataStore {
 	}
 
 	public void save() {
-		new Thread(() -> {
-			JsonObject out = new JsonObject();
+		JsonObject out = new JsonObject();
 
-			for(Map.Entry<String, Object> entry : data.entrySet()) {
-				out.add(entry.getKey(), new Gson().toJsonTree(entry.getValue(), dataTypes.get(entry.getKey())));
-			}
+		for(Map.Entry<String, Object> entry : data.entrySet()) {
+			out.add(entry.getKey(), new Gson().toJsonTree(entry.getValue(), dataTypes.get(entry.getKey())));
+		}
 
-			try {
-				BufferedWriter bw = new BufferedWriter(new FileWriter(this.file));
-				bw.write(new GsonBuilder().setPrettyPrinting().create().toJson(out));
-				bw.flush();
-				bw.close();
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		}).start();
+		try {
+			BufferedWriter bw = new BufferedWriter(new FileWriter(this.file));
+			bw.write(new GsonBuilder().setPrettyPrinting().create().toJson(out));
+			bw.flush();
+			bw.close();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 }
